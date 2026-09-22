@@ -25,7 +25,7 @@ jobs:
         run: python -m pip install briefcase==0.4.5
       - name: Check sources and app behavior
         run: |
-          python -m pip install httpx pytest toga-dummy==0.5.6
+          python -m pip install httpx pytest pillow toga-dummy==0.5.6
           python -m compileall -q src
           python -m unittest discover -s tests -v
       - name: Create Android project

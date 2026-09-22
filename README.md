@@ -36,7 +36,7 @@
 يتطلب Python 3.13 وJava 17 وAndroid SDK:
 
 ```sh
-python -m pip install briefcase==0.4.5 httpx pytest toga-dummy==0.5.6
+python -m pip install briefcase==0.4.5 httpx pytest pillow toga-dummy==0.5.6
 python -m unittest discover -s tests -v
 briefcase create android --no-input
 briefcase build android --no-input
