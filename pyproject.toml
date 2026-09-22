@@ -29,4 +29,3 @@ permission."android.permission.POST_NOTIFICATIONS" = true
 
 build_gradle_dependencies = []
 version_code = 10100
-android_manifest_application_attrs_extra_content = 'android:supportsRtl="true"'
