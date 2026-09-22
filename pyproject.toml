@@ -1,0 +1,30 @@
+[tool.briefcase]
+project_name = "مدونة عبدالرحمن المشيقح"
+bundle = "com.abdualrhmanalmosheqh"
+version = "1.0.0"
+url = "https://abdualrhmanalmosheqh.com/"
+license = "LicenseRef-Proprietary"
+author = "عبدالرحمن المشيقح"
+author_email = "info@abdualrhmanalmosheqh.com"
+
+[tool.briefcase.app.blogapp]
+formal_name = "مدونة عبدالرحمن المشيقح"
+description = "تطبيق لتصفح مقالات وبرامج مدونة عبدالرحمن المشيقح"
+long_description = """تطبيق يعرض محتوى المدونة (المقالات، البرامج، التطبيقات) عبر واجهة
+WordPress.com الرسمية، مع دعم التصنيفات والبحث، وتنبيه عند نشر مقال جديد.
+مصمم مع مراعاة إمكانية الوصول لمستخدمي قارئات الشاشة (TalkBack)."""
+sources = ["src/blogapp"]
+requires = [
+    "httpx",
+]
+
+[tool.briefcase.app.blogapp.android]
+requires = [
+    "toga-android==0.5.6",
+]
+# صلاحيات: الإنترنت لجلب المقالات، وجدولة تنبيهات محلية للمقالات الجديدة
+permission."android.permission.INTERNET" = true
+permission."android.permission.ACCESS_NETWORK_STATE" = true
+permission."android.permission.POST_NOTIFICATIONS" = true
+
+build_gradle_dependencies = []

@@ -1,0 +1,40 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Briefcase
+        run: python -m pip install briefcase==0.4.5
+      - name: Check Python sources
+        run: python -m compileall -q src
+      - name: Create Android project
+        run: briefcase create android --no-input
+      - name: Build Android
+        run: briefcase build android --no-input
+      - name: Package installable APK
+        run: briefcase package android -p debug-apk --no-input
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: almosheqhBlog-APK
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
