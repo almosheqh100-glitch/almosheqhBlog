@@ -26,7 +26,7 @@ def _get(path: str, params: dict | None = None) -> dict:
             response = client.get(url, params=params or {})
             response.raise_for_status()
             return response.json()
-    except httpx.HTTPError as exc:
+    except (httpx.HTTPError, ValueError) as exc:
         raise WordPressAPIError(f"تعذّر الاتصال بالمدونة: {exc}") from exc
 
 
@@ -43,6 +43,7 @@ def fetch_posts(
     search: str | None = None,
     number: int = 20,
     page_handle: str | None = None,
+    page: int = 1,
 ) -> dict:
     """
     يرجع dict فيه:
@@ -51,6 +52,8 @@ def fetch_posts(
       - "next_page_handle": مؤشر الصفحة التالية إن وجدت (للتصفح المتدرج)
     """
     params: dict = {"number": number}
+    if page > 1:
+        params["page"] = page
     if category:
         params["category"] = category
     if search:

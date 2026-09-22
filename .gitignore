@@ -8,4 +8,7 @@ logs/
 .env
 *.jks
 *.keystore
+*.p12
+*.password
+private-signing/
 local.properties

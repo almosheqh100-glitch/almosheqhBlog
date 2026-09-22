@@ -1,7 +1,7 @@
 [tool.briefcase]
 project_name = "مدونة عبدالرحمن المشيقح"
 bundle = "com.abdualrhmanalmosheqh"
-version = "1.0.0"
+version = "1.1.0"
 url = "https://abdualrhmanalmosheqh.com/"
 license = "LicenseRef-Proprietary"
 author = "عبدالرحمن المشيقح"
@@ -28,3 +28,5 @@ permission."android.permission.ACCESS_NETWORK_STATE" = true
 permission."android.permission.POST_NOTIFICATIONS" = true
 
 build_gradle_dependencies = []
+version_code = 10100
+android_manifest_application_attrs_extra_content = 'android:supportsRtl="true"'

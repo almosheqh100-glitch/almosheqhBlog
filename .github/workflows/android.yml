@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android Release APK
 
 on:
   push:
@@ -13,28 +13,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - name: Install Briefcase
         run: python -m pip install briefcase==0.4.5
-      - name: Check Python sources
-        run: python -m compileall -q src
+      - name: Check sources and app behavior
+        run: |
+          python -m pip install httpx pytest toga-dummy==0.5.6
+          python -m compileall -q src
+          python -m unittest discover -s tests -v
       - name: Create Android project
         run: briefcase create android --no-input
       - name: Build Android
         run: briefcase build android --no-input
-      - name: Package installable APK
-        run: briefcase package android -p debug-apk --no-input
+      - name: Package release APK for local signing
+        run: briefcase package android -p apk --no-input
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: almosheqhBlog-APK
+          name: almosheqhBlog-release-unsigned
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 30

@@ -1,0 +1,82 @@
+[
+  {
+    "ID": 486739,
+    "name": "المقالات",
+    "slug": "%d8%a7%d9%84%d9%85%d9%82%d8%a7%d9%84%d8%a7%d8%aa",
+    "description": "هذا القسم يهتم بالمقالات",
+    "post_count": 185,
+    "feed_url": "http://abdualrhmanalmosheqh.com/category/%d8%a7%d9%84%d9%85%d9%82%d8%a7%d9%84%d8%a7%d8%aa/feed/",
+    "parent": 0,
+    "meta": {
+      "links": {
+        "self": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%a7%%d9%%84%%d9%%85%%d9%%82%%d8%%a7%%d9%%84%%d8%%a7%%d8%%aa",
+        "help": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%a7%%d9%%84%%d9%%85%%d9%%82%%d8%%a7%%d9%%84%%d8%%a7%%d8%%aa/help",
+        "site": "https://public-api.wordpress.com/rest/v1.1/sites/236529963"
+      }
+    }
+  },
+  {
+    "ID": 295875,
+    "name": "البرامج",
+    "slug": "%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%85%d8%ac",
+    "description": "تتيح هذه الصفحة استعراض البرامج",
+    "post_count": 17,
+    "feed_url": "http://abdualrhmanalmosheqh.com/category/%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%85%d8%ac/feed/",
+    "parent": 0,
+    "meta": {
+      "links": {
+        "self": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%a7%%d9%%84%%d8%%a8%%d8%%b1%%d8%%a7%%d9%%85%%d8%%ac",
+        "help": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%a7%%d9%%84%%d8%%a8%%d8%%b1%%d8%%a7%%d9%%85%%d8%%ac/help",
+        "site": "https://public-api.wordpress.com/rest/v1.1/sites/236529963"
+      }
+    }
+  },
+  {
+    "ID": 236147152,
+    "name": "تطبيقات Android",
+    "slug": "%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-android",
+    "description": "",
+    "post_count": 2,
+    "feed_url": "http://abdualrhmanalmosheqh.com/category/%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-android/feed/",
+    "parent": 0,
+    "meta": {
+      "links": {
+        "self": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%aa%%d8%%b7%%d8%%a8%%d9%%8a%%d9%%82%%d8%%a7%%d8%%aa-android",
+        "help": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%aa%%d8%%b7%%d8%%a8%%d9%%8a%%d9%%82%%d8%%a7%%d8%%aa-android/help",
+        "site": "https://public-api.wordpress.com/rest/v1.1/sites/236529963"
+      }
+    }
+  },
+  {
+    "ID": 775546702,
+    "name": "تطبيقات windos",
+    "slug": "%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-windos",
+    "description": "",
+    "post_count": 2,
+    "feed_url": "http://abdualrhmanalmosheqh.com/category/%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-windos/feed/",
+    "parent": 0,
+    "meta": {
+      "links": {
+        "self": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%aa%%d8%%b7%%d8%%a8%%d9%%8a%%d9%%82%%d8%%a7%%d8%%aa-windos",
+        "help": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%aa%%d8%%b7%%d8%%a8%%d9%%8a%%d9%%82%%d8%%a7%%d8%%aa-windos/help",
+        "site": "https://public-api.wordpress.com/rest/v1.1/sites/236529963"
+      }
+    }
+  },
+  {
+    "ID": 180066930,
+    "name": "تطبيقات الآيفون",
+    "slug": "%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-%d8%a7%d9%84%d8%a2%d9%8a%d9%81%d9%88%d9%86",
+    "description": "",
+    "post_count": 17,
+    "feed_url": "http://abdualrhmanalmosheqh.com/category/%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-%d8%a7%d9%84%d8%a2%d9%8a%d9%81%d9%88%d9%86/feed/",
+    "parent": 0,
+    "meta": {
+      "links": {
+        "self": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%aa%%d8%%b7%%d8%%a8%%d9%%8a%%d9%%82%%d8%%a7%%d8%%aa-%%d8%%a7%%d9%%84%%d8%%a2%%d9%%8a%%d9%%81%%d9%%88%%d9%%86",
+        "help": "https://public-api.wordpress.com/rest/v1.1/sites/236529963/categories/slug:%%d8%%aa%%d8%%b7%%d8%%a8%%d9%%8a%%d9%%82%%d8%%a7%%d8%%aa-%%d8%%a7%%d9%%84%%d8%%a2%%d9%%8a%%d9%%81%%d9%%88%%d9%%86/help",
+        "site": "https://public-api.wordpress.com/rest/v1.1/sites/236529963"
+      }
+    }
+  }
+]
