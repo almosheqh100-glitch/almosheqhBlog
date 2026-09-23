@@ -35,3 +35,6 @@ def parse_snapshot(data, now=None):
 def attach_views(posts, counts):
     # Missing values are unknown, never invented zeroes.
     return [dict(post, views=counts.get(post['id'])) for post in posts]
+
+def most_viewed(posts, counts):
+    return sorted(attach_views(posts,counts),key=lambda p:(p['views'] is None,-(p['views'] or 0),-p['id']))

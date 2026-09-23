@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "939947604920",
+    "project_id": "almosheqhblog",
+    "storage_bucket": "almosheqhblog.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:939947604920:android:7868aaa8de1c2a9348ad4d",
+        "android_client_info": {
+          "package_name": "com.abdualrhmanalmosheqh.blogapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaFW9t0eNrIexGLEqOke71SqQzD7KISC8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -30,6 +30,8 @@ jobs:
           python -m unittest discover -s tests -v
       - name: Create Android project
         run: briefcase create android --no-input
+      - name: Add native Firebase messaging service
+        run: python scripts/install_android.py
       - name: Build Android
         run: briefcase build android --no-input
       - name: Package release APK for local signing

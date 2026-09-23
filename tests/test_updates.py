@@ -19,14 +19,14 @@ class UpdatesTest(unittest.TestCase):
     def test_never_offer_unpublished_or_incomplete_release(self):
         for flag in ('draft', 'prerelease'):
             data = copy.deepcopy(self.release); data[flag] = True
-            self.assertIsNone(parse_release(data))
+            self.assertIsNone(parse_release(data,current='1.3.0'))
         for field, value in [('body',''),('assets',[])]:
             data = copy.deepcopy(self.release); data[field] = value
-            with self.assertRaises(ValueError):parse_release(data)
+            with self.assertRaises(ValueError):parse_release(data,current='1.3.0')
 
     def test_reject_unexpected_download_destination(self):
         self.release['assets'][0]['browser_download_url'] = 'https://example.com/file.apk'
-        with self.assertRaises(ValueError):parse_release(self.release)
+        with self.assertRaises(ValueError):parse_release(self.release,current='1.3.0')
 
     def test_numeric_versions(self):
         self.assertIsNotNone(parse_release(self.release, '1.3.99'))

@@ -3,7 +3,7 @@ import re
 from urllib.parse import urlparse
 import httpx
 
-CURRENT_VERSION = '1.3.0'
+CURRENT_VERSION = '1.4.0'
 REPO_URL = 'https://github.com/almosheqh100-glitch/almosheqhBlog'
 LATEST_URL = 'https://api.github.com/repos/almosheqh100-glitch/almosheqhBlog/releases/latest'
 

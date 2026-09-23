@@ -90,3 +90,16 @@ def fetch_latest_post_id() -> int | None:
     if posts:
         return posts[0].get("ID")
     return None
+
+def fetch_all_posts() -> list[dict]:
+    """Load all published posts before ranking, not just the first page."""
+    posts = {}
+    page = 1
+    while True:
+        result = fetch_posts(number=100, page=page)
+        previous = len(posts)
+        posts.update((p['id'],p) for p in result['posts'])
+        if len(posts) >= result['found'] or len(posts) == previous:
+            break
+        page += 1
+    return list(posts.values())

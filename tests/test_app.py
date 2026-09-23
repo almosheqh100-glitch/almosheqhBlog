@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
+import tempfile
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
@@ -12,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from blogapp import wordpress_api as api
 from blogapp.presentation import category_label, ordered_categories
 from blogapp.app import BlogApp, main
+from blogapp.library import Library
 
 class CategoriesTest(unittest.TestCase):
     def test_order_and_live_counts(self):
@@ -26,7 +28,9 @@ class CategoriesTest(unittest.TestCase):
 
 class InterfaceTest(unittest.IsolatedAsyncioTestCase):
     async def test_home_navigation_loading_retry_and_links(self):
-        with patch.object(BlogApp, 'load_categories', new_callable=AsyncMock), patch.object(BlogApp, 'watch_for_new_posts', new_callable=AsyncMock), patch.object(BlogApp, 'check_updates', new_callable=AsyncMock):
+        directory=tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        with patch('blogapp.reader_ui.Library',return_value=Library(directory.name)), patch.object(BlogApp, 'load_categories', new_callable=AsyncMock), patch.object(BlogApp, 'watch_for_new_posts', new_callable=AsyncMock), patch.object(BlogApp, 'check_updates', new_callable=AsyncMock):
             app = main()
             await asyncio.sleep(0)
         self.assertTrue(app._showing_home)
@@ -64,13 +68,29 @@ class InterfaceTest(unittest.IsolatedAsyncioTestCase):
         with patch('blogapp.app.fetch_snapshot', return_value={'site_id':0}):
             await app.refresh_views()
         self.assertEqual(app.view_counts, {2: 1250})
+        app.body.clear();app.body.add(app.posts_view)
+        app._showing_home=False
         with patch('blogapp.app.toga.Window', side_effect=RuntimeError('Secondary windows cannot be created on Android')):
             app.posts_box.children[0].on_press()
         self.assertIs(app.body.children[0], app._detail_view)
         self.assertEqual(len(app.windows), 1)
-        app._detail_view.children[0].on_press()
+        await app.return_to_posts()
         self.assertIs(app.body.children[0], app.posts_view)
         self.assertEqual(len(app.posts_cache), 2)
+        self.assertEqual(app.library.last_post()['id'],1)
+        app.open_post_detail(post)
+        with patch.object(app._reader_webview,'evaluate_javascript',new_callable=AsyncMock,return_value=.45):
+            await app.reader_loaded(app._reader_webview)
+            await app.capture_position()
+            self.assertEqual(app.library.position(post),.45)
+            app.toggle_favorite()
+            self.assertTrue(app.library.is_favorite(post))
+            app.show_reading_settings()
+            app.change_font(4)
+            self.assertEqual(app.library.data['settings']['font_size'],24)
+        with patch('blogapp.reader_ui.download_article',return_value={'content':'<p>Offline</p>','saved_images':0,'total_images':1}):
+            await app.save_article_offline()
+            self.assertEqual(app.library.read_offline(post)['total_images'],1)
         app.show_home()
         self.assertTrue(app._showing_home)
         self.assertIs(app.body.children[0], app.home_view)

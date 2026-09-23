@@ -14,11 +14,14 @@ from .wordpress_api import WordPressAPIError, fetch_categories, fetch_posts
 from .presentation import ordered_categories, category_label, post_label
 from .views import fetch_snapshot, parse_snapshot, attach_views
 from .updates import fetch_update, enqueue_download
+from .reader_ui import ReaderFeatures
+from . import mobile
 
 NEW_POST_CHECK_INTERVAL = 30 * 60
 
-class BlogApp(toga.App):
+class BlogApp(ReaderFeatures, toga.App):
     def startup(self):
+        self.init_reading()
         self.current_category = None
         self.current_search = None
         self.posts_cache = []
@@ -56,6 +59,7 @@ class BlogApp(toga.App):
         home_content = toga.Box(children=[
             toga.Label("مدونة عبدالرحمن المشيقح", style=Pack(font_size=20, font_weight="bold", margin=8)),
             toga.Label("اختر التصنيف الذي تريد تصفحه", style=Pack(margin=8)), self.category_box,
+            *self.library_home_buttons(),
             toga.Button("أحدث المقالات من جميع التصنيفات", on_press=self.show_all_posts, style=Pack(height=48, margin=8)), social_box,
             toga.Button("تحديث التصنيفات والأعداد", on_press=self.refresh_categories, style=Pack(height=48, margin=8)),
             toga.Button("التحقق من تحديث التطبيق", on_press=self.check_updates_manually, style=Pack(height=48, margin=8)),
@@ -70,7 +74,7 @@ class BlogApp(toga.App):
         ], style=Pack(direction=COLUMN, flex=1))
         self.body = toga.Box(children=[self.home_view], style=Pack(direction=COLUMN, flex=1))
         self.update_banner = toga.Box(style=Pack(direction=COLUMN))
-        self.main_window = toga.MainWindow(title=self.formal_name, on_gain_focus=self.on_foreground)
+        self.main_window = toga.MainWindow(title=self.formal_name, on_gain_focus=self.on_foreground, on_lose_focus=self.on_background)
         self.main_window.content = toga.Box(children=[search_row, self.update_banner, self.body, self.status_input], style=Pack(direction=COLUMN))
         self.main_window.show()
         self.set_status("الأعداد المحفوظة؛ جارٍ تحديثها من المدونة...")
@@ -80,6 +84,7 @@ class BlogApp(toga.App):
 
     def set_status(self, text):
         self.status_input.value = text
+        mobile.announce(self.status_input,text)
 
     def render_categories(self):
         self.category_box.clear()
@@ -108,6 +113,9 @@ class BlogApp(toga.App):
         await self.load_categories()
 
     def show_home(self, widget=None, **kwargs):
+        self._reader_generation += 1
+        self._reader_post = None
+        self._library_section = None
         self._detail_view = None
         self._update_view = None
         self._request_id += 1
@@ -133,6 +141,9 @@ class BlogApp(toga.App):
         self.begin_posts(self.search_input.value.strip() or None)
 
     def begin_posts(self, search=None):
+        self._reader_generation += 1
+        self._reader_post = None
+        self._library_section = None
         self._detail_view = None
         self._update_view = None
         self._request_id += 1
@@ -214,25 +225,14 @@ class BlogApp(toga.App):
             await self.load_posts(self._request_id, self.page + 1 if self.posts_cache else 1)
 
     def open_post_detail(self, post, widget=None, **kwargs):
-        webview = toga.WebView(style=Pack(flex=1))
-        content = f'''<!doctype html><html dir="rtl" lang="ar"><head>
-        <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-        <style>body{{font:18px sans-serif;line-height:1.8;padding:12px;overflow-wrap:anywhere}}img,video,iframe{{max-width:100%;height:auto}}</style>
-        </head><body><h1>{html.escape(html.unescape(post['title']))}</h1>{post['content']}</body></html>'''
-        webview.set_content(post["url"], content)
-        self._detail_view = toga.Box(children=[
-            toga.Button("العودة إلى المقالات", on_press=self.return_to_posts, style=Pack(height=48, margin=8)), webview,
-            toga.Button("فتح المقال في المتصفح", on_press=partial(self.open_link, post["url"]), style=Pack(height=48, margin=8)),
-        ], style=Pack(direction=COLUMN, flex=1))
-        self.body.clear()
-        self.body.add(self._detail_view)
-        self.set_status(html.unescape(post['title']))
+        self.open_reader(post,widget)
 
-    def return_to_posts(self, widget=None, **kwargs):
-        self.body.clear()
-        self.body.add(self.posts_view)
-        self._detail_view = None
-        self.set_status('اختر مقالًا لقراءته.')
+    async def return_to_posts(self, widget=None, **kwargs):
+        await self.close_reader(widget)
+
+    def on_background(self, window, **kwargs):
+        if self._reader_post:
+            self.loop.create_task(self.capture_position())
 
     def on_foreground(self, window, **kwargs):
         self.loop.create_task(self.check_updates())
@@ -309,17 +309,7 @@ class BlogApp(toga.App):
             self.set_status("تعذر فتح الرابط. تأكد من وجود متصفح على الجهاز.")
 
     async def watch_for_new_posts(self):
-        while True:
-            try:
-                result = await asyncio.to_thread(fetch_posts, number=1)
-                if result["posts"]:
-                    latest = result["posts"][0]
-                    if self.last_seen_post_id is not None and latest["id"] > self.last_seen_post_id:
-                        notifications.notify_new_post(html.unescape(latest["title"]), latest["id"])
-                    self.last_seen_post_id = latest["id"]
-            except WordPressAPIError:
-                pass
-            await asyncio.sleep(NEW_POST_CHECK_INTERVAL)
+        notifications.schedule()
 
 def main():
     return BlogApp(formal_name="مدونة عبدالرحمن المشيقح", app_id="com.abdualrhmanalmosheqh.blogapp")
