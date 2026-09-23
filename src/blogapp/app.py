@@ -13,6 +13,7 @@ from . import notifications
 from .wordpress_api import WordPressAPIError, fetch_categories, fetch_posts
 from .presentation import ordered_categories, category_label, post_label
 from .views import fetch_snapshot, parse_snapshot, attach_views
+from .updates import fetch_update, enqueue_download
 
 NEW_POST_CHECK_INTERVAL = 30 * 60
 
@@ -26,6 +27,10 @@ class BlogApp(toga.App):
         self._showing_home = True
         self._loading = False
         self.last_seen_post_id = None
+        self.available_update = None
+        self._checking_update = False
+        self._detail_view = None
+        self._update_view = None
         self.view_counts = {}
         self.views_updated = None
         try:
@@ -53,6 +58,7 @@ class BlogApp(toga.App):
             toga.Label("اختر التصنيف الذي تريد تصفحه", style=Pack(margin=8)), self.category_box,
             toga.Button("أحدث المقالات من جميع التصنيفات", on_press=self.show_all_posts, style=Pack(height=48, margin=8)), social_box,
             toga.Button("تحديث التصنيفات والأعداد", on_press=self.refresh_categories, style=Pack(height=48, margin=8)),
+            toga.Button("التحقق من تحديث التطبيق", on_press=self.check_updates_manually, style=Pack(height=48, margin=8)),
         ], style=Pack(direction=COLUMN))
         self.home_view = toga.ScrollContainer(content=home_content, horizontal=False, style=Pack(flex=1))
         self.posts_box = toga.Box(style=Pack(direction=COLUMN, margin=8))
@@ -63,12 +69,14 @@ class BlogApp(toga.App):
             toga.ScrollContainer(content=self.posts_box, horizontal=False, style=Pack(flex=1)), self.more_button,
         ], style=Pack(direction=COLUMN, flex=1))
         self.body = toga.Box(children=[self.home_view], style=Pack(direction=COLUMN, flex=1))
-        self.main_window = toga.MainWindow(title=self.formal_name)
-        self.main_window.content = toga.Box(children=[search_row, self.body, self.status_input], style=Pack(direction=COLUMN))
+        self.update_banner = toga.Box(style=Pack(direction=COLUMN))
+        self.main_window = toga.MainWindow(title=self.formal_name, on_gain_focus=self.on_foreground)
+        self.main_window.content = toga.Box(children=[search_row, self.update_banner, self.body, self.status_input], style=Pack(direction=COLUMN))
         self.main_window.show()
         self.set_status("الأعداد المحفوظة؛ جارٍ تحديثها من المدونة...")
         self.loop.create_task(self.load_categories())
         self.loop.create_task(self.watch_for_new_posts())
+        self.loop.create_task(self.check_updates())
 
     def set_status(self, text):
         self.status_input.value = text
@@ -100,6 +108,8 @@ class BlogApp(toga.App):
         await self.load_categories()
 
     def show_home(self, widget=None, **kwargs):
+        self._detail_view = None
+        self._update_view = None
         self._request_id += 1
         self._showing_home = True
         self._loading = False
@@ -123,6 +133,8 @@ class BlogApp(toga.App):
         self.begin_posts(self.search_input.value.strip() or None)
 
     def begin_posts(self, search=None):
+        self._detail_view = None
+        self._update_view = None
         self._request_id += 1
         self._showing_home = False
         self.current_search = search
@@ -143,9 +155,8 @@ class BlogApp(toga.App):
         self.set_status("جارٍ تحميل المقالات...")
         category_slug = self.current_category["slug"] if self.current_category else None
         if page == 1:
-            await self.refresh_views()
-            if request_id != self._request_id:
-                return
+            # Statistics must never delay the list of articles.
+            self.loop.create_task(self.refresh_views_for_posts(request_id))
         try:
             result = await asyncio.to_thread(fetch_posts, category=category_slug, search=self.current_search, number=30, page=page)
         except WordPressAPIError as exc:
@@ -187,23 +198,101 @@ class BlogApp(toga.App):
         except OSError:
             pass
 
+    async def refresh_views_for_posts(self, request_id):
+        await self.refresh_views()
+        if request_id != self._request_id:
+            return
+        self.posts_cache = attach_views(self.posts_cache, self.view_counts)
+        for index, post in enumerate(self.posts_cache):
+            self.posts_box.children[index * 2].text = post_label(post)
+        if self.views_updated and not self._loading and not self._showing_home and self._detail_view is None and self._update_view is None:
+            stamp = self.views_updated.astimezone().strftime('%Y-%m-%d %H:%M')
+            self.set_status(f'عرض {len(self.posts_cache)} مقالًا. آخر تحديث للمشاهدات: {stamp}.')
+
     async def load_more(self, widget, **kwargs):
         if not self._loading:
             await self.load_posts(self._request_id, self.page + 1 if self.posts_cache else 1)
 
     def open_post_detail(self, post, widget=None, **kwargs):
-        detail_window = toga.Window(title=html.unescape(post["title"]))
         webview = toga.WebView(style=Pack(flex=1))
         content = f'''<!doctype html><html dir="rtl" lang="ar"><head>
         <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
         <style>body{{font:18px sans-serif;line-height:1.8;padding:12px;overflow-wrap:anywhere}}img,video,iframe{{max-width:100%;height:auto}}</style>
         </head><body><h1>{html.escape(html.unescape(post['title']))}</h1>{post['content']}</body></html>'''
         webview.set_content(post["url"], content)
-        detail_window.content = toga.Box(children=[
-            toga.Button("العودة إلى المقالات", on_press=lambda w: detail_window.close(), style=Pack(height=48, margin=8)), webview,
+        self._detail_view = toga.Box(children=[
+            toga.Button("العودة إلى المقالات", on_press=self.return_to_posts, style=Pack(height=48, margin=8)), webview,
             toga.Button("فتح المقال في المتصفح", on_press=partial(self.open_link, post["url"]), style=Pack(height=48, margin=8)),
-        ], style=Pack(direction=COLUMN))
-        detail_window.show()
+        ], style=Pack(direction=COLUMN, flex=1))
+        self.body.clear()
+        self.body.add(self._detail_view)
+        self.set_status(html.unescape(post['title']))
+
+    def return_to_posts(self, widget=None, **kwargs):
+        self.body.clear()
+        self.body.add(self.posts_view)
+        self._detail_view = None
+        self.set_status('اختر مقالًا لقراءته.')
+
+    def on_foreground(self, window, **kwargs):
+        self.loop.create_task(self.check_updates())
+
+    async def check_updates_manually(self, widget=None, **kwargs):
+        await self.check_updates(manual=True)
+        if self.available_update:
+            self.show_update_notes()
+
+    async def check_updates(self, manual=False):
+        if self._checking_update:
+            return
+        self._checking_update = True
+        try:
+            release = await asyncio.to_thread(fetch_update)
+        except Exception:
+            if manual:
+                self.set_status('تعذر التحقق من التحديث. تحقق من الإنترنت وحاول مرة أخرى.')
+        else:
+            self.available_update = release
+            self.update_banner.clear()
+            if release:
+                self.update_banner.add(toga.Button('تحديث جديد ' + release['version'] + ' — عرض الوصف والتنزيل', on_press=self.show_update_notes, style=Pack(height=54, margin=8)))
+            elif manual:
+                self.set_status('أنت تستخدم أحدث إصدار من التطبيق.')
+        finally:
+            self._checking_update = False
+
+    def show_update_notes(self, widget=None, **kwargs):
+        release = self.available_update
+        if not release:
+            return
+        if self._update_view is None:
+            self._before_update = self.body.children[0]
+        self._update_view = toga.Box(children=[
+            toga.Label('تحديث التطبيق ' + release['version'], style=Pack(margin=8, font_weight='bold')),
+            toga.MultilineTextInput(value=release['notes'], readonly=True, style=Pack(flex=1, margin=8)),
+            toga.Button('تنزيل التحديث مباشرة', on_press=partial(self.download_update, release), style=Pack(height=54, margin=8)),
+            toga.Button('لاحقًا — العودة', on_press=self.close_update_notes, style=Pack(height=48, margin=8)),
+        ], style=Pack(direction=COLUMN, flex=1))
+        self.body.clear()
+        self.body.add(self._update_view)
+        self.set_status('اقرأ وصف التحديث ثم اضغط تنزيل. بعد التنزيل افتح ملف APK لتأكيد التثبيت.')
+
+    def close_update_notes(self, widget=None, **kwargs):
+        self.body.clear()
+        self.body.add(self._before_update)
+        self._update_view = None
+
+    def download_update(self, release, widget=None, **kwargs):
+        try:
+            queued = enqueue_download(release)
+        except Exception:
+            queued = False
+        if not queued:
+            self.open_link(release['url'])
+        else:
+            if widget:
+                widget.enabled = False
+            self.set_status('بدأ تنزيل التحديث. تابع التنزيل من إشعارات الهاتف، ثم افتح الملف لتثبيته.')
 
     def open_link(self, url, widget=None, **kwargs):
         if urlparse(url).scheme not in {"https", "http"}:

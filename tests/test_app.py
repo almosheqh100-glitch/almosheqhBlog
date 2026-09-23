@@ -26,7 +26,7 @@ class CategoriesTest(unittest.TestCase):
 
 class InterfaceTest(unittest.IsolatedAsyncioTestCase):
     async def test_home_navigation_loading_retry_and_links(self):
-        with patch.object(BlogApp, 'load_categories', new_callable=AsyncMock), patch.object(BlogApp, 'watch_for_new_posts', new_callable=AsyncMock):
+        with patch.object(BlogApp, 'load_categories', new_callable=AsyncMock), patch.object(BlogApp, 'watch_for_new_posts', new_callable=AsyncMock), patch.object(BlogApp, 'check_updates', new_callable=AsyncMock):
             app = main()
             await asyncio.sleep(0)
         self.assertTrue(app._showing_home)
@@ -64,13 +64,35 @@ class InterfaceTest(unittest.IsolatedAsyncioTestCase):
         with patch('blogapp.app.fetch_snapshot', return_value={'site_id':0}):
             await app.refresh_views()
         self.assertEqual(app.view_counts, {2: 1250})
-        app.open_post_detail(post)
+        with patch('blogapp.app.toga.Window', side_effect=RuntimeError('Secondary windows cannot be created on Android')):
+            app.posts_box.children[0].on_press()
+        self.assertIs(app.body.children[0], app._detail_view)
+        self.assertEqual(len(app.windows), 1)
+        app._detail_view.children[0].on_press()
+        self.assertIs(app.body.children[0], app.posts_view)
+        self.assertEqual(len(app.posts_cache), 2)
         app.show_home()
         self.assertTrue(app._showing_home)
         self.assertIs(app.body.children[0], app.home_view)
         with patch('webbrowser.open') as browser:
             app.open_link(app.social_links['فيسبوك'])
             browser.assert_called_once_with('https://www.facebook.com/profile.php?id=61565536892612')
+        release = {'version':'1.4.0','notes':'إصلاح القراءة وتحسين الأداء','url':'https://github.com/almosheqh100-glitch/almosheqhBlog/releases/download/v1.4.0/almosheqhBlog-1.4.0.apk'}
+        with patch('blogapp.app.fetch_update', return_value=release), patch('blogapp.app.enqueue_download', return_value=True) as download:
+            await app.check_updates()
+            download.assert_not_called()
+            app.update_banner.children[0].on_press()
+            self.assertEqual(app._update_view.children[1].value, release['notes'])
+            download.assert_not_called()
+            app._update_view.children[2].on_press()
+            download.assert_called_once_with(release)
+            self.assertFalse(app._update_view.children[2].enabled)
+            app.close_update_notes()
+            self.assertIs(app.body.children[0], app.home_view)
+        with patch.object(app, 'check_updates', new_callable=AsyncMock) as check:
+            app.on_foreground(app.main_window)
+            await asyncio.sleep(0)
+            check.assert_awaited_once()
 
 if __name__ == '__main__':
     unittest.main()
