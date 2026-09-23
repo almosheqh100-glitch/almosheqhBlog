@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 os.environ['TOGA_BACKEND'] = 'toga_dummy'
@@ -36,21 +37,33 @@ class InterfaceTest(unittest.IsolatedAsyncioTestCase):
         category = app.categories[0]
         post = {'id': 1, 'title': 'عنوان &amp; مقال', 'date': '2026-09-22', 'url': 'https://example.com', 'content': '<p>Article</p>'}
         app.current_category = category
-        with patch('blogapp.app.fetch_posts', return_value={'posts': [post], 'found': 2}) as fetch:
+        app.view_counts = {}
+        with patch.object(app, 'refresh_views', new_callable=AsyncMock), patch('blogapp.app.fetch_posts', return_value={'posts': [post], 'found': 2}) as fetch:
             await app.load_posts(app._request_id, 1)
             self.assertEqual(fetch.call_args.kwargs['category'], category['slug'])
-            self.assertEqual(app.posts_box.children[0].text, 'عنوان & مقال')
+            self.assertEqual(app.posts_box.children[0].text, 'عنوان & مقال — عدد المشاهدات غير متاح')
             self.assertTrue(app.more_button.enabled)
         with patch('blogapp.app.fetch_posts', side_effect=api.WordPressAPIError('offline')):
             await app.load_more(None)
             self.assertEqual(app.page, 1)
             self.assertEqual(app.more_button.text, 'إعادة المحاولة')
         second = dict(post, id=2)
+        app.view_counts = {2: 1250}
         with patch('blogapp.app.fetch_posts', return_value={'posts': [second], 'found': 2}):
             await app.load_more(None)
             self.assertEqual(app.page, 2)
             self.assertEqual(len(app.posts_cache), 2)
             self.assertFalse(app.more_button.enabled)
+            self.assertEqual(app.posts_box.children[2].text, 'عنوان & مقال — 1,250 مشاهدة')
+        previous_time = datetime.now(timezone.utc)
+        app.views_updated = previous_time
+        with patch('blogapp.app.fetch_snapshot', side_effect=OSError('offline')):
+            await app.refresh_views()
+        self.assertEqual(app.view_counts, {2: 1250})
+        self.assertEqual(app.views_updated, previous_time)
+        with patch('blogapp.app.fetch_snapshot', return_value={'site_id':0}):
+            await app.refresh_views()
+        self.assertEqual(app.view_counts, {2: 1250})
         app.open_post_detail(post)
         app.show_home()
         self.assertTrue(app._showing_home)

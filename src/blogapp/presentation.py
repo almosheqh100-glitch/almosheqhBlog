@@ -8,3 +8,10 @@ def ordered_categories(categories):
 
 def category_label(category):
     return f"{html.unescape(category['name'])} ({int(category.get('post_count', 0))})"
+
+def post_label(post):
+    title = html.unescape(post['title'])
+    views = post.get('views')
+    if type(views) is int and views >= 0:
+        return f"{title} — {views:,} مشاهدة"
+    return f"{title} — عدد المشاهدات غير متاح"

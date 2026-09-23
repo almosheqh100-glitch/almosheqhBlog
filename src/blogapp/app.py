@@ -11,7 +11,8 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 from . import notifications
 from .wordpress_api import WordPressAPIError, fetch_categories, fetch_posts
-from .presentation import ordered_categories, category_label
+from .presentation import ordered_categories, category_label, post_label
+from .views import fetch_snapshot, parse_snapshot, attach_views
 
 NEW_POST_CHECK_INTERVAL = 30 * 60
 
@@ -25,6 +26,13 @@ class BlogApp(toga.App):
         self._showing_home = True
         self._loading = False
         self.last_seen_post_id = None
+        self.view_counts = {}
+        self.views_updated = None
+        try:
+            snapshot = json.loads((self.paths.data / 'views.json').read_text(encoding='utf-8'))
+            self.view_counts, self.views_updated = parse_snapshot(snapshot)
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
         self.categories = json.loads(Path(__file__).with_name("categories.json").read_text(encoding="utf-8"))
         try:
             self.categories = json.loads((self.paths.data / "categories.json").read_text(encoding="utf-8"))
@@ -134,6 +142,10 @@ class BlogApp(toga.App):
         self.more_button.enabled = False
         self.set_status("جارٍ تحميل المقالات...")
         category_slug = self.current_category["slug"] if self.current_category else None
+        if page == 1:
+            await self.refresh_views()
+            if request_id != self._request_id:
+                return
         try:
             result = await asyncio.to_thread(fetch_posts, category=category_slug, search=self.current_search, number=30, page=page)
         except WordPressAPIError as exc:
@@ -146,10 +158,10 @@ class BlogApp(toga.App):
         if request_id != self._request_id:
             return
         existing = {post["id"] for post in self.posts_cache}
-        new_posts = [post for post in result["posts"] if post["id"] not in existing]
+        new_posts = attach_views([post for post in result["posts"] if post["id"] not in existing], self.view_counts)
         self.posts_cache.extend(new_posts)
         for post in new_posts:
-            self.posts_box.add(toga.Button(html.unescape(post["title"]), on_press=partial(self.open_post_detail, post), style=Pack(margin_bottom=4, height=56)))
+            self.posts_box.add(toga.Button(post_label(post), on_press=partial(self.open_post_detail, post), style=Pack(margin_bottom=4, height=72)))
             self.posts_box.add(toga.Label(post["date"].split("T")[0], style=Pack(margin_bottom=12)))
         self.page = page
         self._loading = False
@@ -157,6 +169,23 @@ class BlogApp(toga.App):
         self.more_button.enabled = more
         self.more_button.text = "تحميل المزيد" if more else "لا توجد مقالات أخرى"
         self.set_status(f"عرض {len(self.posts_cache)} من {result['found']} مقالًا." if self.posts_cache else "لا توجد مقالات مطابقة.")
+        if self.views_updated:
+            stamp = self.views_updated.astimezone().strftime('%Y-%m-%d %H:%M')
+            self.set_status(self.status_input.value + f" آخر تحديث للمشاهدات: {stamp}.")
+
+    async def refresh_views(self):
+        try:
+            snapshot = await asyncio.to_thread(fetch_snapshot)
+            counts, updated = parse_snapshot(snapshot)
+        except Exception:
+            # Stats failure must not block article browsing; retain dated cache.
+            return
+        self.view_counts, self.views_updated = counts, updated
+        try:
+            self.paths.data.mkdir(parents=True, exist_ok=True)
+            (self.paths.data / 'views.json').write_text(json.dumps(snapshot), encoding='utf-8')
+        except OSError:
+            pass
 
     async def load_more(self, widget, **kwargs):
         if not self._loading:
