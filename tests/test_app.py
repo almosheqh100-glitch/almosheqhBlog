@@ -83,6 +83,11 @@ class InterfaceTest(unittest.IsolatedAsyncioTestCase):
             await app.reader_loaded(app._reader_webview)
             await app.capture_position()
             self.assertEqual(app.library.position(post),.45)
+            app._reader_post=second
+            app.library.mark_reading(second)
+            await app.capture_position(post,app._reader_webview)
+            self.assertEqual(app.library.last_post()['id'],second['id'])
+            app._reader_post=post
             app.toggle_favorite()
             self.assertTrue(app.library.is_favorite(post))
             app.show_reading_settings()

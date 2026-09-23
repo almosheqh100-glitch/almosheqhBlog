@@ -161,12 +161,14 @@ class ReaderFeatures:
         if not post or not webview or not self._reader_ready:return
         try:
             position=await asyncio.wait_for(webview.evaluate_javascript('Math.min(1,Math.max(0,window.scrollY/Math.max(1,document.documentElement.scrollHeight-window.innerHeight)))'),2)
-            if type(position) in (float,int) and abs(position-self.library.position(post))>.002:
+            if self._reader_post and self._reader_post['id']==post['id'] and type(position) in (float,int) and abs(position-self.library.position(post))>.002:
                 self.library.mark_reading(post,position)
         except (Exception,asyncio.CancelledError):pass
 
     async def close_reader(self, widget=None, **kwargs):
+        generation=self._reader_generation
         await self.capture_position()
+        if generation!=self._reader_generation:return
         self._reader_generation+=1
         self._reader_post=None
         self.body.clear();self.body.add(self._before_reader)
