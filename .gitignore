@@ -12,3 +12,6 @@ logs/
 *.password
 private-signing/
 local.properties
+.wrangler/
+.dev.vars*
+*service-account*.json

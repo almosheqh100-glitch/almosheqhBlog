@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS deliveries (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

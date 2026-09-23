@@ -1,0 +1,12 @@
+{
+  "name": "almosheqhblog-push",
+  "main": "worker.mjs",
+  "account_id": "7b39ed7ca249b16bdb9c376592c0e887",
+  "compatibility_date": "2026-09-23",
+  "workers_dev": true,
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "almosheqhblog-push",
+    "database_id": "5feef278-b989-497d-b949-993fd4d18924"
+  }]
+}
