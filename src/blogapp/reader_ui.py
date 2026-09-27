@@ -22,6 +22,7 @@ class ReaderFeatures:
         self._return_focus = None
         self._library_section = None
         self._saving_offline = set()
+        self._notifications_view = None
         for command in self.commands:
             if getattr(command,'id',None) == toga.Command.ABOUT:
                 command.text = 'حول التطبيق'
@@ -33,6 +34,7 @@ class ReaderFeatures:
             toga.Button('متابعة آخر قراءة',on_press=self.continue_reading,style=Pack(height=50,margin=8)),
             toga.Button('الأكثر مشاهدة',on_press=self.show_popular,style=Pack(height=50,margin=8)),
             toga.Button('إعدادات القراءة',on_press=self.show_reading_settings,style=Pack(height=50,margin=8)),
+            toga.Button('الإشعارات: المقروءة وغير المقروءة',on_press=self.show_notifications,style=Pack(height=50,margin=8)),
             toga.Button('إعدادات إشعارات المقالات',on_press=self.show_notification_settings,style=Pack(height=50,margin=8)),
         ]
 
@@ -244,6 +246,53 @@ class ReaderFeatures:
             toga.Label(notifications.status(),style=Pack(margin=8)),
             toga.Button('السماح بإشعارات المقالات',on_press=self.enable_notifications,style=Pack(height=50,margin=8)),
         ])
+
+    def show_notifications(self, widget=None, **kwargs):
+        self._request_id+=1
+        self._reader_generation+=1
+        self._reader_post=None
+        self._detail_view=None
+        self._showing_home=False
+        self._notification_filter='all'
+        self.render_notifications()
+
+    def filter_notifications(self, selected, widget=None, **kwargs):
+        self._notification_filter=selected
+        self.render_notifications()
+
+    def render_notifications(self):
+        from . import notifications
+        from datetime import datetime
+        items=notifications.history()
+        unread=sum(not item['read'] for item in items)
+        box=toga.Box(style=Pack(direction=COLUMN,margin=8))
+        box.add(toga.Label('سجل الإشعارات — غير المقروءة: '+str(unread),style=Pack(font_size=20,margin=8)))
+        for key,label in [('all','الكل'),('unread','غير المقروءة'),('read','المقروءة')]:
+            box.add(toga.Button(label,on_press=partial(self.filter_notifications,key),style=Pack(height=48,margin=4)))
+        box.add(toga.Button('تحديد جميع الإشعارات كمقروءة',on_press=self.mark_notifications_read,enabled=bool(unread),style=Pack(height=50,margin=4)))
+        box.add(toga.Button('تحديث سجل الإشعارات',on_press=lambda widget:self.render_notifications(),style=Pack(height=48,margin=4)))
+        visible=[item for item in items if self._notification_filter=='all' or item['read']==(self._notification_filter=='read')]
+        for item in visible:
+            label=('مقروء — ' if item['read'] else 'غير مقروء — ')+item['title']
+            box.add(toga.Button(label,on_press=partial(self.open_saved_notification,item['id']),style=Pack(height=76,margin=4)))
+            box.add(toga.Label(datetime.fromtimestamp(item['received']/1000).strftime('%Y-%m-%d %H:%M'),style=Pack(margin=4)))
+        if not visible:box.add(toga.Label('لا توجد إشعارات في هذا القسم.',style=Pack(margin=8)))
+        box.add(toga.Label('يُحفظ آخر 200 إشعار مستلم بعد هذا التحديث على هاتفك. فتح الإشعار ينقلك إلى المقال في المتصفح ويحدده كمقروء.',style=Pack(margin=8)))
+        self.body.clear()
+        self._notifications_view=toga.Box(children=[toga.Button('العودة إلى الرئيسية',on_press=self.show_home,style=Pack(height=48,margin=8)),toga.ScrollContainer(content=box,horizontal=False,style=Pack(flex=1))],style=Pack(direction=COLUMN,flex=1))
+        self.body.add(self._notifications_view)
+        self.set_status('تم عرض سجل الإشعارات. غير المقروءة: '+str(unread))
+
+    def open_saved_notification(self, article_id, widget=None, **kwargs):
+        from . import notifications
+        opened=notifications.open_notification(article_id)
+        self.render_notifications()
+        self.set_status('تم فتح المقال في المتصفح وتحديد الإشعار كمقروء.' if opened else 'تعذر فتح المتصفح؛ بقي الإشعار غير مقروء.')
+
+    def mark_notifications_read(self, widget=None, **kwargs):
+        from . import notifications
+        notifications.mark_all_read()
+        self.render_notifications()
 
     def enable_notifications(self, widget=None, **kwargs):
         from . import notifications

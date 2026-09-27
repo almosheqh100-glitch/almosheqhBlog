@@ -118,6 +118,22 @@ class InterfaceTest(unittest.IsolatedAsyncioTestCase):
             app.on_foreground(app.main_window)
             await asyncio.sleep(0)
             check.assert_awaited_once()
+        inbox=[{'id':'7','title':'جديد','url':'https://abdualrhmanalmosheqh.com/7','received':1700000000000,'read':False},
+               {'id':'8','title':'سابق','url':'https://abdualrhmanalmosheqh.com/8','received':1690000000000,'read':True}]
+        with patch('blogapp.notifications.history',return_value=inbox), patch('blogapp.notifications.open_notification',return_value=True) as external:
+            app.show_notifications()
+            def buttons():
+                return [getattr(w,'text','') for w in app.body.children[0].children[1].content.children]
+            self.assertIn('غير مقروء — جديد',buttons())
+            app.filter_notifications('read')
+            self.assertIn('مقروء — سابق',buttons())
+            self.assertNotIn('غير مقروء — جديد',buttons())
+            app.open_saved_notification('8')
+            external.assert_called_once_with('8')
+            self.assertIsNone(app._reader_post)
+            with patch('blogapp.notifications.mark_all_read') as mark:
+                app.mark_notifications_read()
+                mark.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

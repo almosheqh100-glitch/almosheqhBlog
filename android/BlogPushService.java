@@ -48,16 +48,20 @@ public class BlogPushService extends FirebaseMessagingService {
     @Override public void onMessageReceived(@NonNull RemoteMessage message) {
         Map<String,String> data=message.getData();
         String id=data.get("id"),title=data.get("title"),url=data.get("url");
-        if (id==null || !id.matches("[0-9]{1,10}") || title==null || url==null || !enabled(this)) return;
+        if (id==null || !id.matches("[0-9]{1,10}") || title==null || url==null) return;
         Uri uri=Uri.parse(url);
         if (!"https".equals(uri.getScheme()) || !"abdualrhmanalmosheqh.com".equals(uri.getHost())) return;
+        String plainTitle=Html.fromHtml(title,Html.FROM_HTML_MODE_LEGACY).toString();
+        NotificationHistory.record(this,id,plainTitle,url);
+        if (!enabled(this)) return;
         synchronized (BlogPushService.class) {
             android.content.SharedPreferences seen=getSharedPreferences("push_delivered",MODE_PRIVATE);
             if (seen.getBoolean(id,false)) return;
-            Intent intent=new Intent(Intent.ACTION_VIEW,uri);
+            Intent intent=new Intent(this,NotificationOpenActivity.class);
+            intent.setData(uri);
+            intent.putExtra("article_id",id);
             PendingIntent action=PendingIntent.getActivity(this,id.hashCode(),intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             channel(this);
-            String plainTitle=Html.fromHtml(title,Html.FROM_HTML_MODE_LEGACY).toString();
             NotificationCompat.Builder builder=new NotificationCompat.Builder(this,CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("مقال جديد في المدونة")
                 .setContentText(plainTitle).setStyle(new NotificationCompat.BigTextStyle().bigText(plainTitle))

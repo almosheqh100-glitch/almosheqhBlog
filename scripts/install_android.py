@@ -6,7 +6,7 @@ root=Path(__file__).resolve().parents[1]
 app=root/'build/blogapp/android/gradle/app'
 if not (app/'build.gradle').exists():raise SystemExit('Create Android project first')
 package='com/abdualrhmanalmosheqh/blogapp'
-for name in ('BlogPushService.java',):
+for name in ('BlogPushService.java','NotificationHistory.java','NotificationOpenActivity.java'):
     target=app/'src/main/java'/package/name
     target.parent.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(root/'android'/name,target)
@@ -32,5 +32,8 @@ if not any(s.get(android+'name')==name for s in application.findall('service')):
     service=ET.SubElement(application,'service',{android+'name':name,android+'exported':'false'})
     intent=ET.SubElement(service,'intent-filter')
     ET.SubElement(intent,'action',{android+'name':'com.google.firebase.MESSAGING_EVENT'})
+activity_name='com.abdualrhmanalmosheqh.blogapp.NotificationOpenActivity'
+if not any(a.get(android+'name')==activity_name for a in application.findall('activity')):
+    ET.SubElement(application,'activity',{android+'name':activity_name,android+'exported':'false',android+'excludeFromRecents':'true',android+'theme':'@android:style/Theme.Translucent.NoTitleBar'})
 tree.write(manifest,encoding='utf-8',xml_declaration=True)
 print('Native Firebase messaging service installed with validated app resources.')

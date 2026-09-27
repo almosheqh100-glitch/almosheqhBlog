@@ -1,4 +1,31 @@
 """Native Firebase push delivery, independent of the Python UI loop."""
+import json
+
+def _history():
+    from java import jclass
+    return jclass('com.abdualrhmanalmosheqh.blogapp.NotificationHistory'),jclass('org.beeware.android.MainActivity').singletonThis
+
+def history():
+    try:
+        store,context=_history()
+        return json.loads(str(store.list(context)))
+    except ImportError:
+        return []
+
+def open_notification(article_id):
+    try:
+        store,context=_history()
+        return bool(store.open(context,str(article_id)))
+    except ImportError:
+        return False
+
+def mark_all_read():
+    try:
+        store,context=_history()
+        store.markRead(context,None)
+    except ImportError:
+        pass
+
 def _native():
     from java import jclass
     return jclass('com.abdualrhmanalmosheqh.blogapp.BlogPushService'),jclass('org.beeware.android.MainActivity').singletonThis

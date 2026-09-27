@@ -235,6 +235,8 @@ class BlogApp(ReaderFeatures, toga.App):
             self.loop.create_task(self.capture_position())
 
     def on_foreground(self, window, **kwargs):
+        if self.body.children and self.body.children[0] is getattr(self,'_notifications_view',None):
+            self.render_notifications()
         self.loop.create_task(self.check_updates())
 
     async def check_updates_manually(self, widget=None, **kwargs):
